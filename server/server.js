@@ -7,11 +7,11 @@ const server = http.createServer(app);
 const cors = require("cors");
 
 require("dotenv").config();
-console.log(process.env.ORIGIN);
+require("../db/connection");
 
 const io = socketIO(server, {
   cors: {
-    origin: process.env.ORIGIN ,
+    origin:"https://tutorcamp.vercel.app",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -20,7 +20,7 @@ const io = socketIO(server, {
 
 app.use(
   cors({
-    origin: [process.env.ORIGIN, "http://localhost:3000"],
+    origin:"https://tutorcamp.vercel.app",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -77,9 +77,10 @@ io.on("connection", (socket) => {
     console.log("User disconnected: " + socket.id);
   });
 });
-app.get("/",async(req,res)=>{
-res.send("tutorcampbackend");
-})
+
+app.get("/", async (req, res) => {
+  res.send("tutorcampbackend");
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
