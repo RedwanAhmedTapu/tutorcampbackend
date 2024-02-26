@@ -77,6 +77,9 @@ io.on("connection", (socket) => {
     console.log("User disconnected: " + socket.id);
   });
 });
+app.get("/",async(req,res)=>{
+res.send("tutorcampbackend");
+})
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
