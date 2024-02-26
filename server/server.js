@@ -11,7 +11,7 @@ console.log(process.env.ORIGIN);
 
 const io = socketIO(server, {
   cors: {
-    origin: process.env.ORIGIN || "http://localhost:3000",
+    origin: process.env.ORIGIN ,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
