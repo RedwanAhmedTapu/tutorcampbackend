@@ -11,7 +11,7 @@ require("../db/connection");
 
 const io = socketIO(server, {
   cors: {
-    origin:"https://tutorcamp.vercel.app",
+    origin:process.env.ORIGIN,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -20,7 +20,7 @@ const io = socketIO(server, {
 
 app.use(
   cors({
-    origin:"https://tutorcamp.vercel.app",
+    origin:process.env.ORIGIN,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
