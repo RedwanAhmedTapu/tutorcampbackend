@@ -29,54 +29,38 @@ app.use(
 
 app.use(express.json());
 
-const activeClasses = {};
-
+const emailToSocketIdMap = new Map();
+const socketidToEmailMap = new Map();
 io.on("connection", (socket) => {
-  console.log("User connected: " + socket.id);
-
-  socket.on("create-class", () => {
-    const classId = "class-" + Math.random().toString(36).substring(7);
-    console.log(classId);
-    activeClasses[classId] = { teacherSocketId: socket.id, studentSockets: [] };
-    socket.join(classId);
-    socket.emit("class-created", classId);
-
-    console.log(`Class created: ${classId} by Teacher: ${socket.id}`);
+  console.log(`Socket Connected`, socket.id);
+  socket.on("room:join", (data) => {
+    const { email, room } = data;
+    emailToSocketIdMap.set(email, socket.id);
+    socketidToEmailMap.set(socket.id, email);
+    io.to(room).emit("user:joined", { email, id: socket.id });
+    socket.join(room);
+    io.to(socket.id).emit("room:join", data);
   });
 
-  socket.on("join-class", (data) => {
-    const { classId, studentId } = data;
-    console.log(data);
-    const classInfo = activeClasses[classId];
-    if (classInfo) {
-      classInfo.studentSockets.push(socket.id);
-      socket.join(classId);
-      io.to(classId).emit("student-joined", studentId);
-      console.log(`Student ${studentId} joined Class: ${classId}`);
-    } else {
-      socket.emit("class-not-found");
-    }
+  socket.on("user:call", ({ to, offer }) => {
+    io.to(to).emit("incomming:call", { from: socket.id, offer });
   });
 
-  socket.on("offer", (offer) => {
-    const { offer: offerData, receiverId } = offer;
-    io.to(receiverId).emit("offer", { offer: offerData, senderId: socket.id });
+  socket.on("call:accepted", ({ to, ans }) => {
+    io.to(to).emit("call:accepted", { from: socket.id, ans });
   });
 
-  socket.on("answer", (answer) => {
-    const { answer: answerData, receiverId } = answer;
-    io.to(receiverId).emit("answer", { answer: answerData, senderId: socket.id });
+  socket.on("peer:nego:needed", ({ to, offer }) => {
+    console.log("peer:nego:needed", offer);
+    io.to(to).emit("peer:nego:needed", { from: socket.id, offer });
   });
 
-  socket.on("ice-candidate", (candidate) => {
-    const { candidate: candidateData, receiverId } = candidate;
-    io.to(receiverId).emit("ice-candidate", { candidate: candidateData, senderId: socket.id });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected: " + socket.id);
+  socket.on("peer:nego:done", ({ to, ans }) => {
+    console.log("peer:nego:done", ans);
+    io.to(to).emit("peer:nego:final", { from: socket.id, ans });
   });
 });
+
 
 app.get("/", async (req, res) => {
   res.send("tutorcampbackend");
