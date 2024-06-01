@@ -35,27 +35,27 @@ io.on("connection", (socket) => {
   console.log(`Socket Connected`, socket.id);
 
   socket.on("room-join", (data) => {
-    const { room, email } = data;
-    socket.join(room);
-    socket.emit("joined-room", room);
+    const { roomId } = data;
+    socket.join(roomId);
 
-    // Emitting the "new-user-joined" event to the room when a new user joins
-    io.to(room).emit("new-user-joined", { email });
+    // Emitting the "newjoining" event to the room when a new user joins
+    io.to(roomId).emit("newjoining", { id: socket.id });
   });
 
-  socket.on("sendTheOffer", (data) => {
-    const { email, offer } = data;
-    io.to(email).emit("recieveOffer", { from: socket.id, offer });
+  socket.on("sendTheOffer", (offer, roomId) => {
+    console.log(offer, "offer");
+    io.to(roomId).emit("recieveOffer", offer);
   });
 
-  socket.on("sendTheAnswer", (data) => {
-    const { emailID, ans } = data;
-    io.to(emailID).emit("recieveAnswer", { ans });
+  socket.on("sendTheAnswer", (ans, roomId) => {
+    console.log(ans, "answer");
+    io.to(roomId).emit("recieveAnswer", ans);
   });
 
-  socket.on("sendIceCandidate", (data) => {
-    const { candidate, emailID } = data;
-    io.to(emailID).emit("receiveIceCandidate", { candidate });
+  // Receive ICE candidates
+  socket.on("sendIceCandidate", (candidate, roomId) => {
+    console.log("Received ICE candidate:", candidate);
+    io.to(roomId).emit("receiveIceCandidate", candidate);
   });
 });
 
