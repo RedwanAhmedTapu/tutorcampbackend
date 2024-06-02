@@ -1,61 +1,76 @@
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
+const express = require("express");
+const http = require("http");
+const socketIO = require("socket.io");
+const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
-const cors = require("cors");
-
-const PORT = process.env.PORT || 5000;
-
-require("dotenv").config();
-require("../db/connection");
 const io = socketIO(server, {
   cors: {
-    origin: process.env.ORIGIN, // Replace with your frontend URL
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    origin: "*",
   },
 });
 
-app.use(
-  cors({
-    origin: process.env.ORIGIN, // Replace with your frontend URL
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+const PORT = process.env.PORT || 5000;
 
 const emailToSocketIdMap = new Map();
-const socketidToEmailMap = new Map();
+const socketIdToEmailMap = new Map();
 
 io.on("connection", (socket) => {
-  console.log(`Socket Connected`, socket.id);
+  console.log(`Socket Connected: ${socket.id}`);
 
   socket.on("room-join", (data) => {
     const { room, email } = data;
-    socket.join(room);
-    socket.emit("joined-room", room);
+    console.log(`User with email: ${email} joined room: ${room}`);
 
-    // Emitting the "new-user-joined" event to the room when a new user joins
+    socket.join(room);
+    emailToSocketIdMap.set(email, socket.id);
+    socketIdToEmailMap.set(socket.id, email);
+
+    socket.emit("joined-room", room);
     io.to(room).emit("new-user-joined", { email });
   });
 
-  socket.on("sendTheOffer", (data) => {
-    const { email, offer } = data;
-    io.to(email).emit("recieveOffer", { from: socket.id, offer });
+  socket.on("sendOffer", (data) => {
+    const { email, offer, roomId } = data;
+    const recipientSocketId = emailToSocketIdMap.get(email);
+    if (recipientSocketId) {
+      console.log(`Sending offer to ${email} (${recipientSocketId})`);
+      io.to(recipientSocketId).emit("receiveOffer", { from: socketIdToEmailMap.get(socket.id), offer });
+    } else {
+      console.log(`Recipient's socket ID not found for email: ${email}`);
+    }
   });
 
-  socket.on("sendTheAnswer", (data) => {
-    const { emailID, ans } = data;
-    io.to(emailID).emit("recieveAnswer", { ans });
+  socket.on("sendAnswer", (data) => {
+    const { email, answer } = data;
+    const recipientSocketId = emailToSocketIdMap.get(email);
+    if (recipientSocketId) {
+      console.log(`Sending answer to ${email} (${recipientSocketId})`);
+      io.to(recipientSocketId).emit("receiveAnswer", { from: socketIdToEmailMap.get(socket.id), answer });
+    } else {
+      console.log(`Recipient's socket ID not found for email: ${email}`);
+    }
   });
 
   socket.on("sendIceCandidate", (data) => {
-    const { candidate, emailID } = data;
-    io.to(emailID).emit("receiveIceCandidate", { candidate });
+    const { candidate, recipientEmail } = data;
+    const recipientSocketId = emailToSocketIdMap.get(recipientEmail);
+    if (recipientSocketId) {
+      console.log(`Sending ICE candidate to ${recipientEmail} (${recipientSocketId})`);
+      io.to(recipientSocketId).emit("receiveIceCandidate", { candidate });
+    } else {
+      console.log(`Recipient's socket ID not found for email: ${recipientEmail}`);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    const email = socketIdToEmailMap.get(socket.id);
+    if (email) {
+      console.log(`User with email: ${email} disconnected`);
+      emailToSocketIdMap.delete(email);
+      socketIdToEmailMap.delete(socket.id);
+    }
   });
 });
 
