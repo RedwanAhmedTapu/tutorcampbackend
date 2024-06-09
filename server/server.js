@@ -30,6 +30,8 @@ io.on("connection", (socket) => {
   socket.on("room-join", (data) => {
     const { room, email } = data;
     console.log(`User with email: ${email} joined room: ${room}`);
+    console.log(emailToSocketIdMap,"email to socket")
+    console.log(socketIdToEmailMap,"socket to email")
 
     socket.join(room);
     emailToSocketIdMap.set(email, socket.id);
