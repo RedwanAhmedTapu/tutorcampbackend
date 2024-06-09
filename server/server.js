@@ -2,15 +2,23 @@ const express = require("express");
 const http = require("http");
 const socketIO = require("socket.io");
 const cors = require("cors");
+const { sourceMapsEnabled } = require("process");
 
 const app = express();
 const server = http.createServer(app);
+
+require("dotenv").config();
+require("../db/connection")
 const io = socketIO(server, {
   cors: {
-    origin: "*",
+    origin: process.env.ORIGIN, // Replace with your frontend URL
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   },
 });
 
+console.log(process.env.PORT)
 const PORT = process.env.PORT || 5000;
 
 const emailToSocketIdMap = new Map();
@@ -66,11 +74,14 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     const email = socketIdToEmailMap.get(socket.id);
+    console.log(socketIdToEmailMap)
+    console.log(emailToSocketIdMap)
     if (email) {
       console.log(`User with email: ${email} disconnected`);
       emailToSocketIdMap.delete(email);
       socketIdToEmailMap.delete(socket.id);
     }
+   
   });
 });
 
