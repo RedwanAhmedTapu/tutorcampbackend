@@ -15,6 +15,7 @@ const tokenBasedAuthentication=require("../middleweare/authenticationToken");
 const userRegistration = require("../routes/user.reg");
 const userlogin = require("../routes/user-login");
 const teacherDashBoardRoutes = require("../routes/teacher-dashboard-route");
+const studentDashBoardRoutes = require("../routes/student-dashboard");
 
 
 require("dotenv").config();
@@ -56,6 +57,7 @@ app.get('/users', async (req, res) => {
 
 // Routes
 app.use("/teacher",tokenBasedAuthentication, teacherDashBoardRoutes);
+app.use("/student",tokenBasedAuthentication, studentDashBoardRoutes);
 
 const emailToSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
