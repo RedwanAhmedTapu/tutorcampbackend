@@ -7,16 +7,14 @@ const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-const UserModel = require('../models/user.reg.model');
-const tokenBasedAuthentication=require("../middleweare/authenticationToken");
-
-
+const UserModel = require("../models/user.reg.model");
+const Message = require("../models/chatmessage.model");
+const tokenBasedAuthentication = require("../middleweare/authenticationToken");
 
 const userRegistration = require("../routes/user.reg");
 const userlogin = require("../routes/user-login");
 const teacherDashBoardRoutes = require("../routes/teacher-dashboard-route");
 const studentDashBoardRoutes = require("../routes/student-dashboard");
-
 
 require("dotenv").config();
 require("../db/connection");
@@ -46,19 +44,85 @@ const PORT = process.env.PORT || 5000;
 app.post("/user/signup", userRegistration);
 app.post("/user/login", userlogin);
 // Define a route to get user data
-app.get('/users', async (req, res) => {
+app.get("/users", async (req, res) => {
   try {
-    const users = await UserModel.find().select('-password'); // Exclude the password field
+    const users = await UserModel.find().select("-password"); // Exclude the password field
     res.status(200).json(users);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching users', error });
+    res.status(500).json({ message: "Error fetching users", error });
   }
 });
 
 // Routes
-app.use("/teacher",tokenBasedAuthentication, teacherDashBoardRoutes);
-app.use("/student",tokenBasedAuthentication, studentDashBoardRoutes);
+app.use("/teacher", tokenBasedAuthentication, teacherDashBoardRoutes);
+app.use("/student", tokenBasedAuthentication, studentDashBoardRoutes);
 
+// chatmessaging
+
+app.get("/api/messages", async (req, res) => {
+  const { userEmail, recipientEmail } = req.query;
+
+  let messages;
+  if (userEmail && recipientEmail) {
+    messages = await Message.find({
+      $or: [
+        { userEmail: userEmail, recipientEmail: recipientEmail },
+        { userEmail: recipientEmail, recipientEmail: userEmail },
+      ],
+    });
+  } else {
+    messages = await Message.find({ userEmail });
+  }
+  res.json(messages);
+});
+app.get("/api/single-messages", async (req, res) => {
+  const { userEmail } = req.query;
+
+  const messages = await Message.findOne({
+    userEmail,
+  });
+  res.json(messages);
+});
+
+const emailToSocketIdMapChat = new Map();
+const socketIdToEmailMapChat = new Map();
+
+io.on("connection", (socket) => {
+  console.log("a user connected");
+
+  socket.on("register", (email) => {
+    emailToSocketIdMapChat.set(email, socket.id);
+    socketIdToEmailMapChat.set(socket.id, email);
+  });
+
+  socket.on("disconnect", () => {
+    const email = socketIdToEmailMapChat.get(socket.id);
+    emailToSocketIdMapChat.delete(email);
+    socketIdToEmailMapChat.delete(socket.id);
+    console.log("user disconnected");
+  });
+
+  socket.on("newMessage", async (message) => {
+    const { userEmail, recipientEmail, text, postedOn } = message;
+  const user = await UserModel.findOne({email:userEmail}); // Exclude the password field
+
+    const newMessage = new Message({
+      userEmail,
+      recipientEmail,
+      text,
+      postedOn,
+    });
+    await newMessage.save();
+
+    const recipientSocketId = emailToSocketIdMapChat.get(recipientEmail);
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("newMessage", newMessage);
+    }
+    socket.emit("newMessage", newMessage);
+  });
+});
+
+// for videoMeeting
 const emailToSocketIdMap = new Map();
 const socketIdToEmailMap = new Map();
 

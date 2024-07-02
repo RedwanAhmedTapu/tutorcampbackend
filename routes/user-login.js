@@ -24,7 +24,7 @@ const userLogin = async (req, res) => {
     // Generate a token
     const token = jwt.sign({ fname:user.fname,lname:user.lname, email: user.email, userType: user.userType }, JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({ message: 'Login successful', token, fname:user.fname,lname:user.lname, email: user.email, userType: user.userType });
+    res.status(200).json({ message: 'Login successful', token, fname:user.fname,lname:user.lname, email: user.email,image:user.profileImage, userType: user.userType });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
