@@ -91,6 +91,7 @@ io.on("connection", (socket) => {
   console.log("a user connected");
 
   socket.on("register", (email) => {
+    console.log(email);
     emailToSocketIdMapChat.set(email, socket.id);
     socketIdToEmailMapChat.set(socket.id, email);
   });
@@ -103,22 +104,24 @@ io.on("connection", (socket) => {
   });
 
   socket.on("newMessage", async (message) => {
-    const { userEmail, recipientEmail, text, postedOn } = message;
-  const user = await UserModel.findOne({email:userEmail}); // Exclude the password field
+    const { userEmail, recipientEmail, text, postedOn,userImage } = message;
 
     const newMessage = new Message({
       userEmail,
       recipientEmail,
       text,
       postedOn,
+      userImage
     });
     await newMessage.save();
 
     const recipientSocketId = emailToSocketIdMapChat.get(recipientEmail);
+    console.log(recipientSocketId)
     if (recipientSocketId) {
-      io.to(recipientSocketId).emit("newMessage", newMessage);
+      console.log(recipientSocketId)
+      io.to(recipientSocketId).emit("newMessage", {newMessage,recipientSocketId});
     }
-    socket.emit("newMessage", newMessage);
+    socket.emit("newMessage", {newMessage,recipientSocketId});
   });
 });
 
