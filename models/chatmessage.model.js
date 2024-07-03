@@ -6,7 +6,7 @@ const messageSchema = new mongoose.Schema({
     recipientEmail: { type: String, required: true },
     text: { type: String, required: true },
     postedOn: { type: String, required: true },
-    userImage: { type: String, required: true },
+    userImage: { type: String },
   });
   
   const Message = mongoose.model("Message", messageSchema);
