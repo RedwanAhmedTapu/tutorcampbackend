@@ -87,15 +87,28 @@ app.get("/api/single-messages", async (req, res) => {
 const emailToSocketIdMapChat = new Map();
 const socketIdToEmailMapChat = new Map();
 
+let users = {};
 io.on("connection", (socket) => {
   console.log("a user connected");
 
+  // Handle user online status
+  socket.on("user-online", (userId) => {
+    users[userId] = true;
+    io.emit("update-user-status", users);
+  });
+
+  socket.on("user-offline", (userId) => {
+    users[userId] = false;
+    io.emit("update-user-status", users);
+  });
+
+  // Register user socket
   socket.on("register", (email) => {
-    console.log(email);
     emailToSocketIdMapChat.set(email, socket.id);
     socketIdToEmailMapChat.set(socket.id, email);
   });
 
+  // Handle user disconnect
   socket.on("disconnect", () => {
     const email = socketIdToEmailMapChat.get(socket.id);
     emailToSocketIdMapChat.delete(email);
@@ -103,25 +116,38 @@ io.on("connection", (socket) => {
     console.log("user disconnected");
   });
 
+  // Handle new messages
   socket.on("newMessage", async (message) => {
-    const { userEmail, recipientEmail, text, postedOn,userImage } = message;
+    const { userEmail, recipientEmail, text, postedOn, userImage } = message;
 
     const newMessage = new Message({
       userEmail,
       recipientEmail,
       text,
       postedOn,
-      userImage
+      userImage,
+      seen: false,
     });
     await newMessage.save();
 
     const recipientSocketId = emailToSocketIdMapChat.get(recipientEmail);
-    console.log(recipientSocketId)
     if (recipientSocketId) {
-      console.log(recipientSocketId)
-      io.to(recipientSocketId).emit("newMessage", {newMessage,recipientSocketId});
+      io.to(recipientSocketId).emit("newMessage", {
+        newMessage,
+        recipientSocketId,
+      });
     }
-    socket.emit("newMessage", {newMessage,recipientSocketId});
+    socket.emit("newMessage", { newMessage, recipientSocketId });
+  });
+
+  // Handle message seen
+  socket.on("message-seen", async (messageId) => {
+    try {
+      await Message.findByIdAndUpdate(messageId, { seen: true });
+      socket.emit("message-seen", messageId);
+    } catch (error) {
+      console.error("Error updating message seen status:", error);
+    }
   });
 });
 
@@ -190,6 +216,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    // disconnection for videomeeting
     const email = socketIdToEmailMap.get(socket.id);
     console.log(socketIdToEmailMap);
     console.log(emailToSocketIdMap);
@@ -198,6 +225,21 @@ io.on("connection", (socket) => {
       emailToSocketIdMap.delete(email);
       socketIdToEmailMap.delete(socket.id);
     }
+
+    // disconnection for chat application
+    for (const userEmail in users) {
+      if (users[userEmail] === socket.id) {
+        delete users[userEmail];
+        break;
+      }
+    }
+    io.emit("update-user-status", users);
+    console.log("Client disconnected:", socket.id);
+  });
+
+  socket.on("user-offline", (userEmail) => {
+    delete users[userEmail];
+    io.emit("update-user-status", users);
   });
 });
 
