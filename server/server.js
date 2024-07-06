@@ -15,6 +15,7 @@ const userRegistration = require("../routes/user.reg");
 const userlogin = require("../routes/user-login");
 const teacherDashBoardRoutes = require("../routes/teacher-dashboard-route");
 const studentDashBoardRoutes = require("../routes/student-dashboard");
+const adminRoutes = require('../routes/adminRoutes');
 
 require("dotenv").config();
 require("../db/connection");
@@ -56,11 +57,13 @@ app.get("/users", async (req, res) => {
 // Routes
 app.use("/teacher", tokenBasedAuthentication, teacherDashBoardRoutes);
 app.use("/student", tokenBasedAuthentication, studentDashBoardRoutes);
+app.use("/admin", tokenBasedAuthentication, adminRoutes);
 
 // chatmessaging
 
 app.get("/api/messages", async (req, res) => {
   const { userEmail, recipientEmail } = req.query;
+   console.log(req.query)
 
   let messages;
   if (userEmail && recipientEmail) {
@@ -144,6 +147,7 @@ io.on("connection", (socket) => {
   socket.on("message-seen", async (messageId) => {
     try {
       await Message.findByIdAndUpdate(messageId, { seen: true });
+      io.to(recipientSocketId).emit("message-seen",messageId);
       socket.emit("message-seen", messageId);
     } catch (error) {
       console.error("Error updating message seen status:", error);
