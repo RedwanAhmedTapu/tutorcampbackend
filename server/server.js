@@ -158,7 +158,7 @@ app.get("/webauthn/reg-options", async (req, res) => {
     console.log("Generating registration options");
     const options = await generateRegistrationOptions({
       rpName: "tutorcamp",
-      rpID: ,
+      rpID: process.env.RPID,
       userID: userIDBuffer,
       userName: email,
       attestationType: "direct",
