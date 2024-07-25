@@ -249,7 +249,7 @@ app.get("/webauthn/auth-options", async (req, res) => {
     }
 
     const options = await generateAuthenticationOptions({
-      rpID: "localhost",
+      rpID:process.env.LOCALHOST,
       userVerification: "preferred",
       allowCredentials: [
         {
@@ -303,8 +303,8 @@ app.post("/webauthn/auth-verify", async (req, res) => {
     const verification = await verifyAuthenticationResponse({
       response: body,
       expectedChallenge: expectedChallenge,
-      expectedOrigin: "http://localhost:3000", // Change this to your origin
-      expectedRPID: "localhost", // Change this to your RPID
+      expectedOrigin: process.env.ORIGIN, // Change this to your origin
+      expectedRPID:  process.env.LOCALHOST, // Change this to your RPID
       authenticator: {
         credentialPublicKey: base64url.toBuffer(user.webAuthn.credentialPublicKey),
         credentialID: base64url.toBuffer(user.webAuthn.credentialID),
