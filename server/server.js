@@ -157,8 +157,8 @@ app.get("/webauthn/reg-options", async (req, res) => {
 
     console.log("Generating registration options");
     const options = await generateRegistrationOptions({
-      rpName: "Your RP Name",
-      rpID: "localhost",
+      rpName: "tutorcamp",
+      rpID: ,
       userID: userIDBuffer,
       userName: email,
       attestationType: "direct",
@@ -200,8 +200,8 @@ app.post("/webauthn/reg-verify", async (req, res) => {
     const verification = await verifyRegistrationResponse({
       response: body,
       expectedChallenge: expectedChallenge,
-      expectedOrigin: "http://localhost:3000", // Your origin
-      expectedRPID: "localhost", // Your RPID
+      expectedOrigin: process.env.ORIGIN, // Your origin
+      expectedRPID:process.env.RPID , // Your RPID
       // Provide any other required parameters
     });
 
@@ -249,7 +249,7 @@ app.get("/webauthn/auth-options", async (req, res) => {
     }
 
     const options = await generateAuthenticationOptions({
-      rpID:process.env.LOCALHOST,
+      rpID:process.env.RPID,
       userVerification: "preferred",
       allowCredentials: [
         {
@@ -304,7 +304,7 @@ app.post("/webauthn/auth-verify", async (req, res) => {
       response: body,
       expectedChallenge: expectedChallenge,
       expectedOrigin: process.env.ORIGIN, // Change this to your origin
-      expectedRPID:  process.env.LOCALHOST, // Change this to your RPID
+      expectedRPID: process.env.RPID, // Change this to your RPID
       authenticator: {
         credentialPublicKey: base64url.toBuffer(user.webAuthn.credentialPublicKey),
         credentialID: base64url.toBuffer(user.webAuthn.credentialID),
