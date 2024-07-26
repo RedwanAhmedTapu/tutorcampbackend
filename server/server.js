@@ -169,14 +169,14 @@ app.get("/webauthn/reg-options", async (req, res) => {
       },
     });
 
-     // Save the challenge to the user's document
-     user.webAuthn = {
+    // Save the challenge to the user's document
+    user.webAuthn = {
       ...user.webAuthn,
-      challenge: options.challenge
+      challenge: options.challenge,
     };
     await user.save();
     console.log("Registration Options:", options); // This should log the resolved options
-    
+
     res.json(options);
   } catch (error) {
     console.error("Error generating registration options:", error);
@@ -186,8 +186,8 @@ app.get("/webauthn/reg-options", async (req, res) => {
 
 app.post("/webauthn/reg-verify", async (req, res) => {
   const { email, ...body } = req.body;
-  console.log(req.body)
-  
+  console.log(req.body);
+
   try {
     const user = await UserModel.findOne({ email });
     if (!user) {
@@ -201,13 +201,17 @@ app.post("/webauthn/reg-verify", async (req, res) => {
       response: body,
       expectedChallenge: expectedChallenge,
       expectedOrigin: process.env.ORIGIN, // Your origin
-      expectedRPID:process.env.RPID , // Your RPID
+      expectedRPID: process.env.RPID, // Your RPID
       // Provide any other required parameters
     });
 
     if (verification.verified) {
-      user.webAuthn.credentialID = base64url.encode(verification.registrationInfo.credentialID);
-      user.webAuthn.credentialPublicKey = base64url.encode(verification.registrationInfo.credentialPublicKey);
+      user.webAuthn.credentialID = base64url.encode(
+        verification.registrationInfo.credentialID
+      );
+      user.webAuthn.credentialPublicKey = base64url.encode(
+        verification.registrationInfo.credentialPublicKey
+      );
       user.webAuthn.counter = verification.registrationInfo.counter;
       await user.save();
 
@@ -241,7 +245,7 @@ app.get("/webauthn/auth-options", async (req, res) => {
 
     let credentialIDBuffer;
     try {
-      console.log("ok")
+      console.log("ok");
       credentialIDBuffer = base64url.toBuffer(user.webAuthn.credentialID);
     } catch (e) {
       console.error("Error decoding credentialID:", e);
@@ -249,20 +253,20 @@ app.get("/webauthn/auth-options", async (req, res) => {
     }
 
     const options = await generateAuthenticationOptions({
-      rpID:process.env.RPID,
+      rpID: process.env.RPID,
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: credentialIDBuffer.toString('utf8'),
+          id: credentialIDBuffer.toString("utf8"),
           type: "public-key",
-          transports: ["usb", "ble", "nfc", "internal"]
-        }
-      ]
+          transports: ["internal"], //"usb", "ble", "nfc";here internal take fingerprint,pin or face
+        },
+      ],
     });
-     // Save the challenge to the user's document
-     user.webAuthn = {
+    // Save the challenge to the user's document
+    user.webAuthn = {
       ...user.webAuthn,
-      loginChallenge: base64url.encode(options.challenge)
+      loginChallenge: base64url.encode(options.challenge),
     };
     await user.save();
 
@@ -273,7 +277,6 @@ app.get("/webauthn/auth-options", async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
-
 
 // Endpoint to verify authentication response
 app.post("/webauthn/auth-verify", async (req, res) => {
@@ -288,15 +291,18 @@ app.post("/webauthn/auth-verify", async (req, res) => {
     }
 
     // Debug logging
-    console.log("User WebAuthn Data for Verification:", user.webAuthn.loginChallenge);
+    console.log(
+      "User WebAuthn Data for Verification:",
+      user.webAuthn.loginChallenge
+    );
 
     const expectedChallenge = base64url.decode(user.webAuthn.loginChallenge);
     const responseChallenge = body.response.clientDataJSON;
-    
+
     // Parse the clientDataJSON to get the challenge
     const clientDataJSON = JSON.parse(base64url.decode(responseChallenge));
     const receivedChallenge = clientDataJSON.challenge;
-    
+
     console.log("Expected Challenge:", expectedChallenge);
     console.log("Received Challenge:", receivedChallenge);
 
@@ -306,7 +312,9 @@ app.post("/webauthn/auth-verify", async (req, res) => {
       expectedOrigin: process.env.ORIGIN, // Change this to your origin
       expectedRPID: process.env.RPID, // Change this to your RPID
       authenticator: {
-        credentialPublicKey: base64url.toBuffer(user.webAuthn.credentialPublicKey),
+        credentialPublicKey: base64url.toBuffer(
+          user.webAuthn.credentialPublicKey
+        ),
         credentialID: base64url.toBuffer(user.webAuthn.credentialID),
         counter: user.webAuthn.counter,
       },
@@ -316,7 +324,7 @@ app.post("/webauthn/auth-verify", async (req, res) => {
 
     if (verification.verified) {
       user.webAuthn.counter = verification.authenticationInfo.newCounter;
-      user.verified=true;
+      user.verified = true;
       await user.save();
 
       // Respond with success and user info (e.g., JWT token)
