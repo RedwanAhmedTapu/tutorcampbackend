@@ -4,7 +4,7 @@ const socketIO = require("socket.io");
 const cors = require("cors");
 const { sourceMapsEnabled } = require("process");
 const path = require("path");
-const fileUpload = require("express-fileupload");
+// const fileUpload = require("express-fileupload");
 const tesseract = require("tesseract.js");
 const sharp = require("sharp");
 const math = require("mathjs");
@@ -28,6 +28,7 @@ const userlogin = require("../routes/user-login");
 const teacherDashBoardRoutes = require("../routes/teacher-dashboard-route");
 const studentDashBoardRoutes = require("../routes/student-dashboard");
 const adminRoutes = require("../routes/adminRoutes");
+const paymentIntegration=require("../routes/payement-integration")
 
 require("dotenv").config();
 require("../db/connection");
@@ -40,7 +41,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/server/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(fileUpload());
 
 const io = socketIO(server, {
   cors: {
@@ -359,6 +359,7 @@ app.get("/users", async (req, res) => {
 app.use("/teacher", tokenBasedAuthentication, teacherDashBoardRoutes);
 app.use("/student", tokenBasedAuthentication, studentDashBoardRoutes);
 app.use("/admin", tokenBasedAuthentication, adminRoutes);
+app.use("/api",paymentIntegration);
 
 // chatmessaging
 
